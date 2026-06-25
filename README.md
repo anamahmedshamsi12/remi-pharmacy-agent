@@ -1,160 +1,218 @@
-# Remi — AI Pharmacy Agent
+# Remi
 
-> *"I worked as a pharmacy technician. This is the tool I wish existed."*
-
-Remi is an agentic AI assistant built for the retail pharmacy counter. It operates in two distinct modes — **Tech Mode** for pharmacy staff and **Patient Mode** for patients at pickup — running autonomously in the background, detecting problems before they're asked about, and handling routine patient interactions so the tech can stay in their workflow.
-
-Built for the **FutureAI Global Hackathon 2026** — Healthcare AI + AI Agents & Automation tracks.
+An agentic AI assistant for the retail pharmacy counter. Remi operates in two modes — **Tech Mode** for pharmacy staff and **Patient Mode** for patients at pickup — running an autonomous monitoring loop that detects issues, investigates discrepancies, and handles routine patient interactions without being prompted.
 
 ---
 
-## The Problem
+## Table of Contents
 
-Retail pharmacy technicians are interrupted an average of **once every four minutes**. Each interruption means a lost count, a forgotten callback, a discrepancy that doesn't get traced. Controlled substance discrepancy investigations — federally required, DEA-audited — are done manually with paper logs and memory. Patient pickups pull the tech away from everything else for 3–5 minutes of routine verification.
-
-The result: errors, compliance risk, and a cognitive load that burns through staff.
-
-The enterprise solutions (Omnicell, BD Pyxis) are built for hospitals. Independent retail pharmacies — where this pain is worst — have spreadsheets and sticky notes.
-
-**Remi closes that gap.**
+- [Overview](#overview)
+- [Motivation](#motivation)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Project Structure](#project-structure)
+- [Design Decisions](#design-decisions)
+- [Roadmap](#roadmap)
+- [Author](#author)
 
 ---
 
-## What Remi Does
+## Overview
 
-### Tech Mode — Operational AI Agent
-Remi monitors the pharmacy shift autonomously. She doesn't wait to be asked.
+Remi is a desktop application built with Electron and powered by the Anthropic Claude API. It simulates a full pharmacy shift in accelerated time, firing clinical events that trigger a genuine agentic reasoning loop — Claude receives pharmacy state as context, selects from a defined tool set, executes multi-step investigations, and renders its chain of thought in real time.
 
-**Shift Simulation Engine**
-- Live event stream: fills, insurance rejects, inventory drops, controlled substance counts
-- Accelerated time simulation (1×, 2×, 4× speed) for demos
-- 20+ scripted shift events that build into a narrative arc
+The application runs as a native desktop window with a custom titlebar, application menu, and keyboard shortcuts. The source is a single `index.html` renderer with no frontend framework dependencies.
 
-**Discrepancy Investigation**
-- Detects controlled substance count mismatches automatically
-- Traces full transaction history: dispensed, received, returned, adjusted
-- Reconstructs where each unit should be, step by step
-- Identifies most likely explanation — or explicitly flags as unexplained
-- Generates DEA Form 106 language when pattern crosses diversion threshold
+---
+
+## Motivation
+
+Retail pharmacy technicians are interrupted an average of once every four minutes. Each interruption carries clinical risk — a lost count on a controlled substance, a forgotten patient callback, an insurance rejection left unresolved.
+
+Controlled substance discrepancy investigations are federally mandated and DEA-audited. In the majority of independent retail pharmacies, they are conducted manually using paper logs and memory. Enterprise solutions exist for hospital pharmacy environments. The independent retail segment lacks purpose-built tooling.
+
+Remi addresses three specific failure points in the retail pharmacy workflow:
+
+1. Controlled substance count discrepancies go uninvestigated until audit pressure forces a reconciliation.
+2. Insurance rejection codes are decoded manually, with no standardized decision support for the technician.
+3. Patient pickup interactions pull the technician out of active workflow for routine, highly structured exchanges that do not require clinical judgment.
+
+---
+
+## Features
+
+### Tech Mode
+
+**Autonomous Shift Monitoring**
+Remi runs a continuous event loop over a simulated pharmacy shift. Events fire at defined shift intervals — fills, insurance rejections, inventory changes, controlled substance counts. Each event triggers an agentic decision loop without user input.
+
+**Controlled Substance Discrepancy Investigation**
+When a count mismatch is detected, Remi calls `trace_discrepancy()` as a Claude tool. Claude receives the full transaction history, reconstructs expected counts step by step, identifies the most plausible explanation, and flags unexplained gaps for pharmacist review.
 
 **Diversion Pattern Detection**
-- Tracks discrepancies across multiple count cycles within a shift
-- Identifies patterns consistent with diversion tactics (consistent small gaps)
-- Escalates with full documentation trail — not just an alert, a case file
+When the same drug shows unexplained gaps across multiple count cycles within a shift, Remi escalates to a diversion assessment and generates DEA Form 106 documentation language. Single discrepancies and multi-cycle patterns are handled differently — the agent distinguishes between a logging error and a behavioral pattern.
 
-**Insurance Reject Decoder**
-- Decodes NCPDP reject codes in plain English
-- Gives the most likely fix: override code, PA trigger, rebill options
-- Offers GoodRx cash price comparison when appropriate
-- Generates script for what to tell the patient right now
+**Insurance Reject Decoding**
+NCPDP rejection codes trigger a `decode_reject()` tool call. Remi returns the plain-English meaning of the code, the most likely cause, the recommended resolution path, and a patient-facing script for the technician to use at the counter.
 
 **Inventory Intelligence**
-- Real-time stock tracking with visual indicators
-- FDA shortage list integration — flags extended lead times
-- Proactive reorder recommendations based on fill velocity
-- Patient impact assessment when stock is critically low
+Fill events decrement inventory state in real time. Remi monitors stock levels against par thresholds and proactively flags items approaching reorder points. FDA shortage designations are tracked separately — when a shortage drug runs low, Remi extends the urgency assessment to account for extended lead times and active patient impact.
 
-**Follow-up Queue**
-- Logs patient callbacks, price checks, script-ready notifications
-- Urgency scoring — surfaces overdue items without being asked
-- End-of-shift handoff report: everything still open, next tech priorities
+**Follow-up Queue Management**
+Remi maintains a persistent queue of open patient follow-ups across the shift. Items age in real time and surface automatically when overdue. End-of-shift handoff report includes all unresolved queue items with recommended next actions.
+
+**Drug Interaction Checker**
+Dedicated interaction checking via OpenFDA label data and Claude reasoning. Returns severity classification (contraindicated, major, moderate, minor), mechanism, and clinical management recommendation for any drug pair. Disclosed in the UI as clinical decision support, not a replacement for a certified interaction database.
+
+**Drug Information Tooltips**
+Hovering any drug name in the application surfaces a tooltip with drug class, schedule, standard dosing range, black box warnings, and known interactions pulled from the OpenFDA API. Results are cached per session to avoid redundant network requests.
 
 **Remi's Reasoning Panel**
-- Every autonomous action shows chain-of-thought line by line
-- Judges and reviewers see the AI actually reasoning, not just outputting
-- Distinguishes between "wait," "act," and "escalate" decisions with rationale
+Every autonomous agent action renders its chain of thought in the center panel, one line at a time. This is Claude's actual output from each tool-use call — not pre-written strings — streamed into the UI as it arrives.
+
+**Free-form Command Bar**
+Technicians can query Remi at any point during the shift. All queries are answered with full pharmacy state injected into context.
 
 ---
 
-### Patient Mode — Pickup Intake Agent
-When a patient approaches the counter, Remi switches to a warm, accessible interface and handles the entire pickup flow so the tech doesn't have to stop what they're doing.
+### Patient Mode
 
 **Identity Verification**
-- Collects name and date of birth conversationally
-- Confirms identity before pulling prescription details
+Collects patient name and date of birth before surfacing prescription details.
 
 **Prescription Lookup**
-- Surfaces what's ready for pickup
-- Shows drug name, quantity, prescriber
-- Flags if anything is still pending or requires pharmacist attention
+Surfaces active prescriptions ready for pickup — drug name, quantity, prescriber, fill status.
 
 **Copay Explanation**
-- Shows copay clearly with insurance breakdown
-- If copay is higher than expected: explains why (formulary tier, deductible status, prior auth)
-- Offers GoodRx comparison automatically if cash price is lower
-- Flags tech if patient needs assistance or wants to speak to someone
+Presents the copay with insurance context. Surfaces an explanation when the copay is higher than expected and offers a GoodRx cash-pay comparison automatically when the cash price is lower.
 
 **OBRA '90 Counseling Offer**
-- Federally mandated: every patient must be offered pharmacist counseling
-- Remi handles the offer conversationally, not as a checkbox
-- Documents offer + patient response automatically
-- If patient has questions: captures them and queues for pharmacist with full context so they're not walking in cold
+Handles the federally mandated pharmacist counseling offer conversationally and documents the offer and patient response automatically. When a patient accepts or raises a question, Remi queues the interaction for the pharmacist with full context.
 
 **Digital Signature Capture**
-- Collects pickup acknowledgment
-- Logs timestamp, drug, quantity, patient confirmation
+Collects pickup acknowledgment and logs timestamp, drug, quantity, and patient confirmation to shift state.
 
-**Cross-Mode Intelligence**
-- Remi maintains operational awareness in Patient Mode
-- If a patient is picking up a drug with an active discrepancy flag, Remi knows
-- Alerts tech silently without interrupting the patient interaction
+**Patient Check-in Tracking**
+Every completed intake is logged in the Patients tab with full intake records. The Shift Stats panel shows a live checked-in counter. Tech Mode surfaces a real-time notification when a patient initiates intake in Patient Mode.
+
+**Cross-Mode State Awareness**
+Patient Mode operates on the same state object as Tech Mode. If a patient presents to pick up a drug carrying an active discrepancy flag, Remi surfaces a silent alert to the technician without interrupting the patient interaction.
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    REMI AGENT CORE                   │
-│                                                      │
-│  ┌─────────────┐    ┌──────────────┐                │
-│  │  Tech Mode  │    │ Patient Mode │                │
-│  │  Dashboard  │◄──►│   Intake     │                │
-│  └──────┬──────┘    └──────┬───────┘                │
-│         │                  │                         │
-│  ┌──────▼──────────────────▼───────┐                │
-│  │        Shift State Engine        │                │
-│  │  (inventory, CS log, queue,      │                │
-│  │   discrepancies, events)         │                │
-│  └──────────────┬───────────────────┘                │
-│                 │                                    │
-│  ┌──────────────▼───────────────────┐                │
-│  │      Claude API (claude-sonnet)   │                │
-│  │                                  │                │
-│  │  Tools:                          │                │
-│  │  • trace_discrepancy()           │                │
-│  │  • check_inventory()             │                │
-│  │  • decode_reject()               │                │
-│  │  • add_followup()                │                │
-│  │  • generate_form106()            │                │
-│  │  • flag_pharmacist()             │                │
-│  │  • patient_intake()              │                │
-│  └──────────────────────────────────┘                │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      PHARMACY_STATE                          │
+│    Single global object. Both modes read and write to it.   │
+└───────────────────────┬─────────────────────────────────────┘
+                        │
+          ┌─────────────▼─────────────┐
+          │     Simulation Engine      │
+          │  Fires events at defined   │
+          │  shift minute intervals    │
+          └─────────────┬─────────────┘
+                        │ event fires
+          ┌─────────────▼─────────────┐
+          │    agentDecisionLoop()     │
+          │                           │
+          │  1. Build state snapshot  │
+          │  2. Call Claude API       │
+          │     with tool definitions │
+          │  3. Claude selects tool   │
+          │  4. Execute tool          │
+          │  5. Return result to      │
+          │     Claude                │
+          │  6. Render reasoning      │
+          │  7. Update state + UI     │
+          │  8. Log to shift record   │
+          └─────────────┬─────────────┘
+                        │
+          ┌─────────────▼─────────────┐
+          │        Tool Layer          │
+          │                           │
+          │  trace_discrepancy()      │
+          │  check_inventory()        │
+          │  decode_reject()          │
+          │  flag_pharmacist()        │
+          │  generate_form106()       │
+          │  add_followup()           │
+          │  patient_intake()         │
+          │  generate_shift_report()  │
+          └─────────────┬─────────────┘
+                        │
+          ┌─────────────▼─────────────┐
+          │          UI Layer          │
+          │                           │
+          │  Tech Mode (6 sections)   │
+          │  Patient Mode             │
+          │  Reasoning Panel          │
+          │  Live Feed                │
+          │  State Board              │
+          └───────────────────────────┘
 ```
 
-**Simulation Engine** — JavaScript state machine running a full pharmacy shift in accelerated time. Events fire automatically, inventory drops, CS counts drift, discrepancies accumulate, diversion patterns emerge. Remi watches and acts without being prompted.
-
-**Dual Mode UI** — Single-page application that switches cleanly between dark, data-dense Tech Mode and warm, accessible Patient Mode. Same agent, two completely different interfaces, one device.
-
-**Reasoning Panel** — Every autonomous agent action renders its chain-of-thought line by line in real time. Not a summary — actual step-by-step reasoning visible to the user.
-
-**Claude API Integration** — Free-form questions answered with full shift context injected into every API call. Remi knows what's happening in the shift when she answers anything.
+For full system documentation see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | Vanilla HTML/CSS/JS — zero build step, runs anywhere |
-| AI | Claude claude-sonnet-4-6 via Anthropic API |
-| Fonts | Space Grotesk (UI) + JetBrains Mono (data) |
-| Simulation | Custom JavaScript state machine |
-| Deployment | Static file — open in any browser |
+| Layer | Technology | Rationale |
+|---|---|---|
+| Desktop | Electron | Native window, application menu, keyboard shortcuts, dock icon |
+| Frontend | Vanilla HTML/CSS/JS | Zero framework dependencies. No build step for the renderer. |
+| AI | Anthropic Claude claude-sonnet-4-6 | Tool-use support required for genuine multi-step agentic behavior |
+| Drug Data | OpenFDA API | Free, public, no API key required. Real drug label and interaction data. |
+| Fonts | Space Grotesk, JetBrains Mono | UI legibility and clinical data readability respectively |
+| Simulation | Custom JS state machine | Deterministic event scheduling with configurable time acceleration |
+| Storage | localStorage | API key only. No patient data persisted. |
+| Packaging | electron-builder | Produces signed-ready .dmg for macOS, .exe for Windows |
 
-### Why no framework?
-Hackathon constraint: maximum portability. Judges can open `index.html` directly. No npm install, no build step, no environment setup. The AI is the complexity — the delivery mechanism should be frictionless.
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18 or higher
+- An Anthropic API key — [console.anthropic.com](https://console.anthropic.com)
+
+### Development
+
+```bash
+git clone https://github.com/anamahmedshamsi12/remi-rx.git
+cd remi-rx
+npm install
+npm start
+```
+
+### Build
+
+```bash
+npm run build
+```
+
+Produces a packaged application in `dist/`. On macOS: `Remi-1.0.0-arm64.dmg`.
+
+Note: the build is unsigned. On macOS, first launch requires right-click → Open → Open anyway to bypass Gatekeeper. This is expected behavior for applications without an Apple Developer ID.
+
+### API Key
+
+On first launch, click **API Key** in the top bar and paste your Anthropic API key. Stored in `localStorage` under `remi_api_key`. Only ever transmitted to `api.anthropic.com`.
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| Cmd/Ctrl+N | New shift |
+| Cmd/Ctrl+P | Toggle Patient Mode |
+| Cmd/Ctrl+R | Generate shift report |
+| Cmd/Ctrl+, | Settings |
+| Escape | Return to Tech Mode |
 
 ---
 
@@ -162,106 +220,71 @@ Hackathon constraint: maximum portability. Judges can open `index.html` directly
 
 ```
 remi-rx/
-├── index.html          # Full application — Tech Mode + Patient Mode
-├── README.md           # This file
-├── DEMO.md             # Demo script for video recording
+├── main.js                 # Electron main process
+├── preload.js              # Context bridge
+├── package.json
+├── index.html              # Full application renderer
+├── README.md
 ├── assets/
-│   └── remi-logo.svg   # Brand mark
+│   └── icon.png            # Application icon (1024×1024)
+├── tests/
+│   └── remi.test.js        # Test suite — node tests/remi.test.js
 └── docs/
-    ├── architecture.md # Detailed system design
-    ├── pharmacy-domain.md  # Domain knowledge reference
-    └── hackathon-submission.md  # Devpost copy
+    ├── ARCHITECTURE.md     # System design document
+    ├── DOMAIN.md           # Pharmacy domain knowledge reference
+    └── DEMO.md             # Demo walkthrough
 ```
 
----
-
-## Running Locally
+### Running Tests
 
 ```bash
-git clone https://github.com/anamahmedshamsi12/remi-rx.git
-cd remi-rx
-open index.html
+node tests/remi.test.js
 ```
 
-That's it. No dependencies.
+No external test framework required.
 
 ---
 
-## Demo Flow
+## Design Decisions
 
-**Recommended demo sequence for video (3 minutes):**
+**Electron over browser deployment**
+A desktop application is the correct form factor for pharmacy counter software. Pharmacies install software — they do not navigate to URLs. Electron provides a native window, application menu, dock presence, and keyboard shortcuts that match the expectation of installed clinical tooling.
 
-**0:00 — Personal hook (30 sec)**
-> "I worked as a pharmacy technician. Techs are interrupted every four minutes. Controlled substance investigations are done with paper logs and memory. I built Remi."
+**Single renderer file**
+The entire frontend lives in `index.html`. This keeps the deployment surface minimal and makes the codebase readable in one pass. The AI reasoning layer is the architectural complexity — the delivery mechanism should be invisible.
 
-**0:30 — Tech Mode: Start the shift (60 sec)**
-- Hit Start Shift at 2× speed
-- Watch first fills come in, Remi reconciling counts automatically
-- Insurance reject fires — watch Remi decode code 75, offer GoodRx alternative, generate script
-- First oxycodone discrepancy — watch reasoning panel trace the transaction log line by line
+**Genuine tool-use over scripted responses**
+The reasoning panel renders Claude's actual output from each tool-use API call. Scripted responses would be faster to build and visually indistinguishable, but would not constitute genuine agentic behavior. The distinction matters for correctness — a scripted system cannot handle inputs it was not scripted for.
 
-**1:30 — Diversion detection (30 sec)**
-- Second discrepancy fires
-- Watch Remi connect the two events, raise diversion flag
-- DEA Form 106 language generated automatically
+**Pre-scripted simulation over live PMS integration**
+Remi does not integrate with a live pharmacy management system. The simulation engine fires deterministic events that represent realistic shift scenarios. This allows the agentic reasoning layer to be evaluated independently of data integration complexity.
 
-**2:00 — Patient Mode: Pickup intake (45 sec)**
-- Switch to Patient Mode
-- Walk through patient pickup: identity verification, prescription confirmation, OBRA offer, copay explanation
-- Show cross-mode intelligence: patient picking up flagged drug, Remi silently alerting tech
+**Shared state object across modes**
+Tech Mode and Patient Mode read and write to a single `PHARMACY_STATE` object. This enables cross-mode awareness — Patient Mode surfaces discrepancy flags on drugs being picked up without any synchronization layer.
 
-**2:45 — Command bar demo (15 sec)**
-- Type: "Generate shift handoff report"
-- Show Claude API response with full shift context
+**OpenFDA for drug data**
+Free, public, no API key, maintained by the US government. Appropriate for a portfolio project. A production implementation would use a certified clinical database such as Lexicomp or Micromedex, disclosed in the UI.
 
 ---
 
-## Why This Wins
+## Roadmap
 
-**Innovation (30%):** First AI agent purpose-built for the retail pharmacy counter. Diversion pattern detection across shift cycles. Dual-mode architecture serving two distinct users on one device.
+**V2 — Data Integration**
+- PioneerRx and Datascan PMS integration via API
+- Real transaction history replacing simulated fills
+- Live inventory sync from wholesaler feeds (Cardinal Health, McKesson)
 
-**Technical Complexity (25%):** Agentic reasoning loop with tool-use pattern. Multi-step discrepancy investigation. Cross-mode state sharing. Live simulation engine. Claude API with full shift context injection.
+**V2 — Communication Layer**
+- Outbound fax to prescriber offices via SRFax API
+- Patient SMS notifications via Twilio
+- Prescriber callback queue with automated follow-up scheduling
 
-**Real-World Impact (20%):** DEA violations carry up to $15,691 per infraction. One caught diversion event pays for years of software. Independent pharmacies have no enterprise-grade tools. Built by someone who actually worked the counter.
-
-**UI/UX (15%):** Two completely distinct visual modes — dark clinical dashboard for techs, warm accessible interface for patients. Reasoning panel makes AI thinking visible. EKG heartbeat responds to activity. Zero onboarding required.
-
-**Presentation (10%):** Personal story from lived experience. Demo creates a visceral moment judges immediately understand.
-
----
-
-## The Vision Beyond the Hackathon
-
-**Hardware:** Remi lives on a dedicated device at the pharmacy counter — 8-inch touchscreen, built-in mic/speaker, swivels between tech-facing and patient-facing. Built on the same Raspberry Pi 4 + OLED platform as the builder's existing alfred.ai robot project. Independent pharmacies pay ~$300/month SaaS. No enterprise IT required.
-
-**V2 Features:**
-- PMS integration (PioneerRx, Datascan) for real transaction data
-- Biennial inventory assistant — walks tech through DEA biennial inventory process
-- Ordering intelligence — recommends what to order from Cardinal Health based on fill velocity
-- Multi-pharmacy dashboard for owner-pharmacists managing multiple locations
-- Prescriber office communication — agentic fax and callback management
+**V3 — Hardware**
+- Dedicated counter device: Raspberry Pi 4, 8-inch touchscreen, integrated mic and speaker
+- Wake word activation for hands-free technician interaction
+- Patient-facing display with proximity detection for automatic mode switching
+- Local processing for PHI to reduce network dependency
 
 ---
 
-## Builder
-
-**Anam Ahmed**
-MS Computer Science (Align), Khoury College — Northeastern University, 2027
-BA Psychology, Minor in Cognitive Science — Rutgers University, 2023
-Active NJ Pharmacy Technician License
-AI Researcher, NU Launch Labs
-
-*Built from firsthand experience behind the pharmacy counter.*
-
----
-
-## Hackathon
-
-**FutureAI Global Hackathon 2026**
-Tracks: Healthcare AI + AI Agents & Automation
-Devpost: https://futureai-global-hackthon.devpost.com
-Deadline: July 5, 2026
-
----
-
-*Remi — because every pharmacy counter deserves a coworker who never forgets.*
+## Author

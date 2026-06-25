@@ -233,6 +233,24 @@ input{font-family:inherit;}
   .view-scroll{ overflow:visible !important; padding:0 !important; }
 }
 
+/* ===== HISTORICAL REPORT CARDS (Reports view) ===== */
+.hist-report-card{ border:1px solid var(--bd1); border-radius:8px; background:var(--s1); margin-bottom:10px; overflow:hidden; }
+.hist-report-card summary{ list-style:none; padding:12px 14px; cursor:pointer; display:flex; flex-direction:column; gap:4px; }
+.hist-report-card summary::-webkit-details-marker{ display:none; }
+.hist-report-card summary:hover{ background:var(--s2); }
+.hist-report-meta{ display:flex; align-items:center; gap:10px; }
+.hist-report-date{ font-size:12.5px; font-weight:600; color:var(--tx1); }
+.hist-report-stats{ font-size:11.5px; color:var(--tx3); font-family:'JetBrains Mono',monospace; }
+.hist-report-body{ padding:10px 14px 14px; border-top:1px solid var(--bd1); display:flex; flex-direction:column; gap:2px; }
+
+/* ===== PATIENT MODE — mobile fallback (< 768px) ===== */
+@media (max-width:768px){
+  .patient-shell{ max-width:100%; padding:20px 16px; }
+  .p-btn{ font-size:14px; padding:13px; }
+  .p-input{ font-size:14px; }
+  .remi-avatar{ width:52px; height:52px; }
+}
+
 /* ===== TECH MODE ===== */
 #tech-mode{display:flex; flex-direction:row; height:100vh; opacity:1; transition:opacity .3s ease, transform .3s ease;}
 
@@ -1171,6 +1189,8 @@ function handleFill(ev){
       userPrompt:`Ozempic 0.5mg stock just crossed a low threshold after a fill.\n\nCurrent shift state:\n${JSON.stringify(pharmacyStateSnapshot(),null,2)}\n\nCheck the inventory and tell the tech what to do.`
     });
   }
+  if($('view-inventory').classList.contains('active')) renderInventoryView();
+  if($('view-dispensing').classList.contains('active')) renderDispensingView();
 }
 
 /**
@@ -3592,7 +3612,56 @@ function renderReportsView(){
 
   $('reports-scroll').innerHTML = `
     <div class="settings-section" style="max-width:680px;">
-      <h3>Shift Report</h3>
+      <h3>Historical Reports</h3>
+
+      <details class="hist-report-card">
+        <summary class="hist-report-summary">
+          <div class="hist-report-meta">
+            <span class="hist-report-date">June 24, 2026 &nbsp;·&nbsp; 09:00–17:00</span>
+            <span class="severity-pill minor">All Clear</span>
+          </div>
+          <div class="hist-report-stats">Scripts: 87 &nbsp;·&nbsp; Flags: 3 &nbsp;·&nbsp; Patients: 12</div>
+        </summary>
+        <div class="hist-report-body">
+          <div class="interaction-detail">All agent flags resolved before end of shift. No outstanding actions required.</div>
+          <div class="interaction-detail" style="margin-top:6px;"><b>Flags:</b> Two insurance rejects (NCPDP code 75 — Refill Too Soon for Metformin, resolved via vacation override; code 70 — DAW mismatch for Lisinopril, rebilled as DAW-0 and accepted). One inventory alert: Ozempic 0.5mg fell to 3 pens at 14:22 — wholesaler order placed, delivery expected next business day.</div>
+          <div class="interaction-detail" style="margin-top:6px;"><b>CS reconciliation:</b> All four controlled substances fully reconciled at end-of-shift count. No discrepancies.</div>
+        </div>
+      </details>
+
+      <details class="hist-report-card" style="border-color:rgba(255,166,0,.3); background:rgba(255,166,0,.04);">
+        <summary class="hist-report-summary">
+          <div class="hist-report-meta">
+            <span class="hist-report-date">June 23, 2026 &nbsp;·&nbsp; 09:00–17:00</span>
+            <span class="severity-pill moderate">Requires Follow-up</span>
+          </div>
+          <div class="hist-report-stats">Scripts: 64 &nbsp;·&nbsp; Flags: 4 &nbsp;·&nbsp; Patients: 9</div>
+        </summary>
+        <div class="hist-report-body">
+          <div class="interaction-detail"><b style="color:var(--amber);">⚠ Unresolved CS discrepancy — action required by incoming tech.</b></div>
+          <div class="interaction-detail" style="margin-top:6px;"><b>Open item:</b> Adderall 20mg (Schedule CII) showed a –2 unit unexplained discrepancy in count cycle #2 at 15:44. DEA Form 106 language was drafted by Remi and reviewed by pharmacist on duty. Pharmacist opted to defer filing pending a second count at shift start today — that count has not yet been performed. <b>Perform opening CS count for Adderall before any fills.</b></div>
+          <div class="interaction-detail" style="margin-top:6px;"><b>Other flags:</b> One DUR reject (code 88, Xanax + Hydrocodone overlap, pharmacist DUR override applied), one Ozempic shortage advisory (no action taken — stock above par), one patient copay dispute resolved via GoodRx.</div>
+        </div>
+      </details>
+
+      <details class="hist-report-card">
+        <summary class="hist-report-summary">
+          <div class="hist-report-meta">
+            <span class="hist-report-date">June 22, 2026 &nbsp;·&nbsp; 09:00–17:00</span>
+            <span class="severity-pill minor">All Clear</span>
+          </div>
+          <div class="hist-report-stats">Scripts: 91 &nbsp;·&nbsp; Flags: 2 &nbsp;·&nbsp; Patients: 15</div>
+        </summary>
+        <div class="hist-report-body">
+          <div class="interaction-detail">Highest-volume shift this week. All flags resolved intra-shift.</div>
+          <div class="interaction-detail" style="margin-top:6px;"><b>Flags:</b> One insurance reject (code 76 — plan quantity limit, prior auth submitted and approved same-day). One low-stock alert for Amoxicillin (fell to 35 capsules at 11:10 — reorder placed). No CS discrepancies. All four controlled substances reconciled.</div>
+          <div class="interaction-detail" style="margin-top:6px;"><b>Patient Mode:</b> 15 patients checked in. Average intake time 4.2 min. OBRA counseling offered to all; 11 accepted.</div>
+        </div>
+      </details>
+    </div>
+
+    <div class="settings-section" style="max-width:680px;">
+      <h3>Current Shift Report</h3>
       <div class="interaction-card">
         <div style="font-size:13px; margin-bottom:10px;"><b>${escapeHtml(s.pharmacyName)}</b> ${s.pharmacistName ? `· Pharmacist on duty: ${escapeHtml(s.pharmacistName)}` : ''}${s.techName ? ` · Tech: ${escapeHtml(s.techName)}` : ''}</div>
         <div class="interaction-detail">Shift time: ${minutesToTimeStr(state.shiftMinutes)} (started ${s.shiftStartTime})</div>
