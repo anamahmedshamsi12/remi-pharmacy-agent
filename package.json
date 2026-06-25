@@ -11,7 +11,8 @@
   },
   "devDependencies": {
     "electron": "latest",
-    "electron-builder": "latest"
+    "electron-builder": "latest",
+    "playwright-core": "^1.61.1"
   },
   "build": {
     "appId": "com.remi.pharmacy",

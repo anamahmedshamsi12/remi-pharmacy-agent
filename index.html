@@ -203,6 +203,29 @@ input{font-family:inherit;}
 .dt-text{font-size:11.5px; color:var(--tx2); line-height:1.5;}
 .dt-empty{color:var(--tx3); font-size:12px; padding:6px 0;}
 
+/* ===== PATIENTS VIEW ===== */
+.patient-summary-bar{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;}
+.patient-summary-card{background:var(--s1); border-radius:8px; padding:14px 16px;}
+.patient-summary-card .num{font-family:'JetBrains Mono',monospace; font-size:22px; color:var(--teal); font-weight:500;}
+.patient-summary-card .lbl{font-size:11px; color:var(--tx2); margin-top:3px;}
+.patients-grid{background:var(--s1); border-radius:10px; overflow:hidden;}
+.patients-grid-header{display:grid; grid-template-columns:140px 68px 1fr 84px 140px 90px 90px; gap:8px; padding:8px 14px; font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--tx3); border-bottom:1px solid var(--bd1);}
+.patient-entry{border-bottom:1px solid var(--bd1);}
+.patient-entry:last-child{border-bottom:none;}
+.patient-entry-row{display:grid; grid-template-columns:140px 68px 1fr 84px 140px 90px 90px; gap:8px; padding:10px 14px; cursor:pointer; transition:background .15s ease; align-items:center; font-size:12px;}
+.patient-entry-row:hover{background:var(--s2);}
+.patient-entry.expanded .patient-entry-row{background:var(--s2);}
+.patient-entry-transcript{display:none; padding:12px 14px 14px; background:rgba(255,255,255,.02); border-top:1px solid var(--bd1);}
+.patient-entry.expanded .patient-entry-transcript{display:block;}
+.patient-transcript-line{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--tx2); padding:4px 0; border-bottom:1px solid var(--bd1); line-height:1.4;}
+.patient-transcript-line:last-child{border-bottom:none;}
+.patient-transcript-line::before{content:"→ "; color:var(--teal);}
+.p-status-chip{font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap; display:inline-block;}
+.p-status-chip.complete{background:var(--teal-bg); color:var(--teal);}
+.p-status-chip.in-progress{background:var(--amber-bg); color:var(--amber);}
+.p-status-chip.abandoned{background:var(--s3); color:var(--tx3);}
+.patient-note-row{grid-column:1/-1; font-size:10.5px; color:var(--amber); padding:0 14px 8px; margin-top:-6px;}
+
 @media print{
   #sidebar, .topbar, .ekg-strip, .cmdbar, .view-header .view-actions{ display:none !important; }
   body, #app, .tech-content, .view-area{ overflow:visible !important; height:auto !important; background:#fff !important; color:#000 !important; }
@@ -267,6 +290,17 @@ body.is-electron-mac .topbar{ padding-left:84px; } /* leaves room for macOS's na
 .feed-card.t-discrepancy{border-left-color:var(--red);}
 .feed-card.t-shortage{border-left-color:var(--amber);}
 .feed-card.t-diversion{border-left-color:var(--red); background:var(--red-bg);}
+.feed-card.t-patient-pickup{border:1px solid var(--teal-bd); border-left:3px solid var(--teal); background:var(--teal-bg);}
+.pp-header{display:flex; align-items:center; gap:6px; margin-bottom:6px;}
+.pp-icon{font-size:13px;}
+.pp-title{font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--teal);}
+.pp-dismiss{margin-left:auto; color:var(--tx3); font-size:12px; padding:2px 4px; line-height:1;}
+.pp-dismiss:hover{color:var(--tx1);}
+.pp-name{font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:500; color:var(--tx1); margin-bottom:2px;}
+.pp-detail{font-size:11px; color:var(--tx2); margin-bottom:6px; line-height:1.35;}
+.pp-status{font-size:11px; font-weight:600; color:var(--teal); margin-bottom:4px; transition:color .15s ease;}
+.pp-status.escalated{color:var(--red);}
+.pp-time{font-size:9.5px; color:var(--tx3); font-family:'JetBrains Mono',monospace;}
 .feed-badge{display:inline-block; font-size:9px; font-weight:600; letter-spacing:.05em; padding:2px 6px; border-radius:4px; margin-bottom:5px; font-family:'JetBrains Mono',monospace;}
 .feed-badge.t-fill{background:var(--blue-bg); color:var(--blue);}
 .feed-badge.t-reject{background:var(--amber-bg); color:var(--amber);}
@@ -451,6 +485,7 @@ body.is-electron-mac .topbar{ padding-left:84px; } /* leaves room for macOS's na
         <div class="sidebar-item" data-view="dispensing" title="Dispensing"><span class="ic">💊</span><span class="lbl">Dispensing</span></div>
         <div class="sidebar-item" data-view="inventory" title="Inventory"><span class="ic">📦</span><span class="lbl">Inventory</span></div>
         <div class="sidebar-item" data-view="followups" title="Follow-ups"><span class="ic">📞</span><span class="lbl">Follow-ups</span></div>
+        <div class="sidebar-item" data-view="patients" title="Patients"><span class="ic">👤</span><span class="lbl">Patients</span></div>
         <div class="sidebar-item" data-view="interactions" title="Interactions"><span class="ic">🔍</span><span class="lbl">Interactions</span></div>
         <div class="sidebar-item" data-view="reports" title="Reports"><span class="ic">📋</span><span class="lbl">Reports</span></div>
         <div class="sidebar-spacer"></div>
@@ -540,6 +575,7 @@ body.is-electron-mac .topbar{ padding-left:84px; } /* leaves room for macOS's na
                   <div class="stat-card"><div class="stat-num red" id="stat-flags">0</div><div class="stat-lbl">Agent flags</div></div>
                   <div class="stat-card"><div class="stat-num amber" id="stat-followups">2</div><div class="stat-lbl">Open follow-ups</div></div>
                   <div class="stat-card"><div class="stat-num" id="stat-rejects">0</div><div class="stat-lbl">Insurance rejects</div></div>
+                  <div class="stat-card" style="grid-column:1/-1;"><div class="stat-num teal" id="stat-checkedin">0</div><div class="stat-lbl">Checked In</div></div>
                 </div>
               </div>
 
@@ -641,6 +677,15 @@ body.is-electron-mac .topbar{ padding-left:84px; } /* leaves room for macOS's na
         </div>
       </div>
 
+      <!-- ===== VIEW: Patients ===== -->
+      <div class="view" id="view-patients">
+        <div class="view-header">
+          <h2>👤 Patients</h2>
+          <span class="view-sub">Patient check-ins this shift</span>
+        </div>
+        <div class="view-scroll"></div>
+      </div>
+
       <!-- ===== VIEW: Interactions ===== -->
       <div class="view" id="view-interactions">
         <div class="view-header">
@@ -693,6 +738,60 @@ body.is-electron-mac .topbar{ padding-left:84px; } /* leaves room for macOS's na
 
 <script>
 /* ============================================================
+   MOCK PATIENT CHECK-IN HISTORY
+   Pre-populated so the Patients view is not empty on load.
+============================================================ */
+const MOCK_PATIENT_CHECKINS = [
+  {
+    id: 3, name: 'Linda Torres', timeDisplay: '9:55am', startMin: 55, intakeMinutes: 8,
+    drug: 'Ozempic 0.5mg, 1 pen', copay: 892.00, goodRxOffered: true, goodRxPrice: 287.00,
+    obra: 'Declined', signature: 'Collected', status: 'complete',
+    note: 'GoodRx alternative presented due to high copay',
+    transcript: [
+      '9:55am — Check-in initiated',
+      'Identity verified: Linda Torres',
+      'Prescription matched: Ozempic 0.5mg · 1 pen · Prescriber: Dr. R. Allen',
+      'Copay shown: $892.00 · Insurance paid: $435.00',
+      'GoodRx alternative offered: $287.00 — shown to patient',
+      'OBRA counseling offered — patient declined',
+      'Signature collected — pickup authorized',
+      '10:03am — Intake complete (8 min)'
+    ]
+  },
+  {
+    id: 2, name: 'James Patel', timeDisplay: '9:41am', startMin: 41, intakeMinutes: 8,
+    drug: 'Lisinopril 10mg, 30ct', copay: 5.00, goodRxOffered: false, goodRxPrice: null,
+    obra: 'Accepted — spoke with pharmacist', signature: 'Collected', status: 'complete',
+    note: null,
+    transcript: [
+      '9:41am — Check-in initiated',
+      'Identity verified: James Patel',
+      'Prescription matched: Lisinopril 10mg · 30 tablets · Prescriber: Dr. K. Osei',
+      'Copay shown: $5.00 · Insurance paid: $28.00',
+      'OBRA counseling offered — accepted',
+      'Pharmacist counseling session requested and logged',
+      'Signature collected — pickup authorized',
+      '9:49am — Intake complete (8 min)'
+    ]
+  },
+  {
+    id: 1, name: 'Sarah Chen', timeDisplay: '9:22am', startMin: 22, intakeMinutes: 5,
+    drug: 'Metformin 500mg, 60ct', copay: 10.00, goodRxOffered: false, goodRxPrice: null,
+    obra: 'Declined', signature: 'Collected', status: 'complete',
+    note: null,
+    transcript: [
+      '9:22am — Check-in initiated',
+      'Identity verified: Sarah Chen',
+      'Prescription matched: Metformin 500mg · 60 tablets · Prescriber: Dr. K. Osei',
+      'Copay shown: $10.00 · Insurance paid: $50.00',
+      'OBRA counseling offered — patient declined',
+      'Signature collected — pickup authorized',
+      '9:27am — Intake complete (5 min)'
+    ]
+  }
+];
+
+/* ============================================================
    STATE
 ============================================================ */
 const state = {
@@ -720,7 +819,9 @@ const state = {
     { name: 'Mrs. Johnson', reason: 'Ozempic price check', startMin: -52, overdue: true },
     { name: 'Mr. Rivera', reason: 'Script ready for pickup', startMin: -14, overdue: false }
   ],
-  pendingTechAlert: null
+  pendingTechAlert: null,
+  checkedIn: 0,
+  patientCheckins: MOCK_PATIENT_CHECKINS.map(p => ({...p}))
 };
 
 const drugNames = {
@@ -874,12 +975,16 @@ function resetShift(){
     followups:2, diversionDetected:false,
     csFlags:{oxy:'due',hydro:'due',add:'due',xan:'due'},
     csCritical:{oxy:false,hydro:false,add:false,xan:false},
-    fired:new Set()
+    fired:new Set(),
+    checkedIn:0
   });
   state.followupList = [
     { name: 'Mrs. Johnson', reason: 'Ozempic price check', startMin: -52, overdue: true },
     { name: 'Mr. Rivera', reason: 'Script ready for pickup', startMin: -14, overdue: false }
   ];
+  state.patientCheckins = MOCK_PATIENT_CHECKINS.map(p => ({...p}));
+  activeCheckin = null;
+  checkinIdCounter = 4;
   feedScroll.innerHTML = '';
   reasoningScroll.innerHTML = '';
   reasoningScroll.appendChild(idleState);
@@ -1402,6 +1507,7 @@ const TOOL_IMPL = {
       insurance_rejects: state.rejects,
       agent_flags_raised: state.flags,
       diversion_detected: state.diversionDetected,
+      patients_checked_in_via_patient_mode: state.checkedIn,
       controlled_substances: Object.keys(state.cs).map(k => ({
         drug: drugNames[k],
         on_hand: state.cs[k],
@@ -1802,7 +1908,7 @@ function escapeHtml(s){
 function flashStat(id){
   const el = $(id);
   if(!el) return;
-  el.textContent = ({'stat-scripts':state.scripts,'stat-flags':state.flags,'stat-rejects':state.rejects,'stat-followups':state.followups})[id];
+  el.textContent = ({'stat-scripts':state.scripts,'stat-flags':state.flags,'stat-rejects':state.rejects,'stat-followups':state.followups,'stat-checkedin':state.checkedIn})[id];
   el.classList.add('flash');
   setTimeout(()=>el.classList.remove('flash'), 500);
 }
@@ -1828,6 +1934,8 @@ function renderStateBoard(){
   $('stat-flags').textContent = state.flags;
   $('stat-followups').textContent = state.followups;
   $('stat-rejects').textContent = state.rejects;
+  const checkedInEl = $('stat-checkedin');
+  if(checkedInEl) checkedInEl.textContent = state.checkedIn;
 
   const csList = $('cs-list');
   csList.innerHTML = '';
@@ -2147,6 +2255,12 @@ $('btn-to-patient').addEventListener('click', ()=>{
   renderPatientStep('welcome');
 });
 $('btn-to-tech').addEventListener('click', ()=>{
+  if(activeCheckin && activeCheckin.status === 'in-progress'){
+    activeCheckin.status = 'abandoned';
+    activeCheckin.transcript.push('Session interrupted — tech returned to Tech Mode');
+    activeCheckin = null;
+    if($('view-patients') && $('view-patients').classList.contains('active')) renderPatientsView();
+  }
   patientMode.classList.remove('active');
   techMode.classList.remove('swapped');
 });
@@ -2176,6 +2290,8 @@ function flashCrossModeAlert(text){
    PATIENT MODE FLOW
 ============================================================ */
 const patientData = { lastName:'', dob:'', drugKey:null, copay:0, insPaid:0, question:'' };
+let activeCheckin = null;    // check-in record for the patient currently in Patient Mode flow
+let checkinIdCounter = 4;    // starts at 4 since mock data uses ids 1-3
 const pickupDrugPool = [
   { key:'lip', label:'Lipitor 20mg', qty:'30 tablets', prescriber:'Dr. R. Allen', copay:12 },
   { key:'met', label:'Metformin 500mg', qty:'90 tablets', prescriber:'Dr. K. Osei', copay:8 },
@@ -2189,6 +2305,110 @@ let patientResetTimer = null;
 
 /** Cancels the pending patient-mode idle-reset timeout, if one is scheduled. Called at the top of every renderPatientStep() so navigating to a new step always supersedes any earlier step's reset timer rather than stacking them. */
 function clearResetTimer(){ if(patientResetTimer) clearTimeout(patientResetTimer); }
+
+/* ============================================================
+   LIVE PATIENT PICKUP NOTIFICATION (Tech Mode ⟵ Patient Mode)
+   A second, independent cross-mode link alongside checkCrossModeAndProceed()
+   — that one redirects the PATIENT-facing screen based on Tech Mode
+   state; this one surfaces the PATIENT's progress onto the Tech Mode
+   screen, live, as a card in the Live Shift Feed. Deliberately scoped
+   to the feed panel exactly as specified, not a global overlay — it's
+   ambient (appears passively in a panel the tech already glances at)
+   rather than interrupting, which is what "without interrupting the
+   tech's workflow" actually requires: not literal visibility from
+   every possible sidebar view, just never stealing focus or blocking input.
+   @author Anam
+============================================================ */
+let patientPickupCardEl = null;     // the live card's DOM node, or null if none is showing
+let patientPickupDismissTimer = null;
+
+/**
+ * Creates the pickup notification card and prepends it to the Live
+ * Shift Feed — prepended (not appended like pushFeedCard's event
+ * cards) so it's immediately visible at the top without the tech
+ * needing to scroll, since its whole point is "glance and see where
+ * this patient is right now."
+ *
+ * Called the moment a patient clicks "Yes, pick up" in Patient Mode —
+ * before identity is even verified, since the spec calls for the card
+ * to appear instantly, with patient name shown "once collected."
+ */
+function startPatientPickupNotification(){
+  clearTimeout(patientPickupDismissTimer);
+  if(patientPickupCardEl) patientPickupCardEl.remove(); // guard against a stale card from an edge case where a prior pickup's card was never dismissed
+  console.log('[Remi] Patient pickup initiated — showing live notification in Tech Mode feed.');
+
+  const card = document.createElement('div');
+  card.className = 'feed-card t-patient-pickup';
+  card.innerHTML = `
+    <div class="pp-header"><span class="pp-icon">🧑</span><span class="pp-title">Patient Pickup</span><button class="pp-dismiss" title="Dismiss">✕</button></div>
+    <div class="pp-name">Patient</div>
+    <div class="pp-detail">Checking in…</div>
+    <div class="pp-status">⏳ Checking in</div>
+    <div class="pp-time mono">${shortTime(state.shiftMinutes)}</div>
+  `;
+  feedScroll.prepend(card);
+  card.querySelector('.pp-dismiss').addEventListener('click', dismissPatientPickupNotification);
+  patientPickupCardEl = card;
+}
+
+/**
+ * Updates the live pickup card's name/prescription/status in place —
+ * called at every intake step transition so the tech always sees
+ * exactly where this patient is without leaving their current screen.
+ * Silently no-ops if the card was already dismissed (manually, or by
+ * a prior auto-dismiss), since status updates can still arrive after
+ * that point and shouldn't resurrect a card the tech closed.
+ *
+ * @param {string} label - Status line text, e.g. "Identity verified".
+ * @param {object} [opts]
+ * @param {string} [opts.icon] - Leading icon/emoji for the status line (defaults to an hourglass).
+ * @param {string} [opts.name] - Patient name, once known.
+ * @param {string} [opts.detail] - Prescription/detail line, once known.
+ * @param {boolean} [opts.escalated] - Styles the status line red for the "tech needed" terminal state.
+ */
+function updatePatientPickupStatus(label, opts = {}){
+  if(!patientPickupCardEl) return;
+  console.log('[Remi] Patient pickup status:', label);
+  if(opts.name) patientPickupCardEl.querySelector('.pp-name').textContent = opts.name;
+  if(opts.detail) patientPickupCardEl.querySelector('.pp-detail').textContent = opts.detail;
+  const statusEl = patientPickupCardEl.querySelector('.pp-status');
+  statusEl.textContent = `${opts.icon || '⏳'} ${label}`;
+  statusEl.className = 'pp-status' + (opts.escalated ? ' escalated' : '');
+}
+
+/** Removes the live pickup card, manually (tech clicked ✕) or via the post-completion auto-dismiss timer. Safe to call when there's no card showing. */
+function dismissPatientPickupNotification(){
+  clearTimeout(patientPickupDismissTimer);
+  if(patientPickupCardEl){ patientPickupCardEl.remove(); patientPickupCardEl = null; }
+}
+
+/**
+ * Marks the pickup complete on the live card and logs it to the
+ * Dispensing log — reuses `state.csLog`'s existing shape (the same
+ * one CS fills write to) rather than a separate "patient pickups"
+ * list, so it shows up in the Dispensing view's table with zero
+ * changes to that view's rendering code. Works for any drug, not
+ * just controlled substances; `runningCount` records whatever the
+ * current on-hand count is at pickup time — this does NOT decrement
+ * inventory itself (Patient Mode never has), it only logs the event.
+ *
+ * @param {{key:string,label:string,qty:string}} drug - The pickup-pool drug entry (see `pickupDrugPool`).
+ */
+function completePatientPickupNotification(drug){
+  updatePatientPickupStatus('Complete', { icon:'✓' });
+  state.csLog.push({
+    drug: drug.key,
+    pt: patientData.lastName || 'Patient',
+    qty: drug.qty,
+    atMin: state.shiftMinutes,
+    runningCount: drug.key in state.cs ? state.cs[drug.key] : (state.inv[drug.key] ?? 0),
+    patientPickup: true // marks this as logged from a Patient Mode pickup rather than the scripted shift-fill timeline
+  });
+  console.log('[Remi] Patient pickup complete — logged to dispensing log:', drug.label, 'for', patientData.lastName);
+  if($('view-dispensing').classList.contains('active')) renderDispensingView(); // refresh immediately if the tech is already looking at that view
+  patientPickupDismissTimer = setTimeout(dismissPatientPickupNotification, 10000);
+}
 
 /**
  * Renders one screen of the Patient Mode pickup flow into
@@ -2222,6 +2442,13 @@ function renderPatientStep(step, opts={}){
   let html = '';
 
   if(step === 'welcome'){
+    // If an in-progress check-in exists from a previous session that wasn't completed, mark it abandoned
+    if(activeCheckin && activeCheckin.status === 'in-progress'){
+      activeCheckin.status = 'abandoned';
+      activeCheckin.transcript.push('Session abandoned — patient did not complete checkout');
+      activeCheckin = null;
+      if($('view-patients') && $('view-patients').classList.contains('active')) renderPatientsView();
+    }
     html = `
       <div class="${dirClass}">
         <div class="remi-avatar"><span class="r-letter">R</span><span class="r-smile"></span></div>
@@ -2233,7 +2460,7 @@ function renderPatientStep(step, opts={}){
         </div>
       </div>`;
     stepContainer.innerHTML = html;
-    $('p-yes').addEventListener('click', ()=>renderPatientStep('verify'));
+    $('p-yes').addEventListener('click', ()=>{ startPatientPickupNotification(); renderPatientStep('verify'); });
     $('p-question').addEventListener('click', ()=>renderPatientStep('ask-question'));
     return;
   }
@@ -2297,6 +2524,36 @@ function renderPatientStep(step, opts={}){
       patientData.lastName = ln; patientData.dob = dob;
       const drug = pickupDrugPool[Math.floor(Math.random()*pickupDrugPool.length)];
       patientData.drugKey = drug;
+
+      // Create check-in record immediately on identity verification
+      const checkTime = shortTime(state.shiftMinutes);
+      activeCheckin = {
+        id: checkinIdCounter++,
+        name: ln,
+        timeDisplay: checkTime,
+        startMin: state.shiftMinutes,
+        startTime: Date.now(),
+        endTime: null,
+        intakeMinutes: null,
+        drug: `${drug.label}, ${drug.qty}`,
+        copay: null,
+        goodRxOffered: false,
+        goodRxPrice: null,
+        obra: null,
+        signature: null,
+        status: 'in-progress',
+        note: null,
+        transcript: [
+          `${checkTime} — Check-in initiated`,
+          `Identity verified: ${ln}`,
+          `Prescription matched: ${drug.label} · ${drug.qty} · Prescriber: ${drug.prescriber}`
+        ]
+      };
+      state.checkedIn++;
+      flashStat('stat-checkedin');
+      state.patientCheckins.unshift(activeCheckin);
+      if($('view-patients') && $('view-patients').classList.contains('active')) renderPatientsView();
+
       checkCrossModeAndProceed(drug);
     });
     return;
@@ -2339,12 +2596,21 @@ function renderPatientStep(step, opts={}){
 
   if(step === 'copay'){
     const drug = patientData.drugKey;
+    updatePatientPickupStatus('Copay shown', { icon:'💳' });
     const totalCost = drug.copay * 7 + 20;
     const copay = drug.copay > 0 ? drug.copay + Math.floor(Math.random()*40) : drug.copay;
     patientData.copay = copay;
     patientData.insPaid = totalCost - copay;
     const showGoodRx = copay > 50;
     const goodRxPrice = Math.max(15, Math.round(copay * 0.55));
+    if(activeCheckin){
+      activeCheckin.copay = copay;
+      activeCheckin.goodRxOffered = showGoodRx;
+      activeCheckin.goodRxPrice = showGoodRx ? goodRxPrice : null;
+      activeCheckin.note = showGoodRx ? 'GoodRx alternative presented due to high copay' : null;
+      activeCheckin.transcript.push(`Copay shown: $${copay.toFixed(2)} · Insurance paid: $${patientData.insPaid.toFixed(2)}`);
+      if(showGoodRx) activeCheckin.transcript.push(`GoodRx alternative offered: $${goodRxPrice.toFixed(2)} — shown to patient`);
+    }
     html = `
       <div class="${dirClass}">
         <div class="patient-card">
@@ -2385,6 +2651,7 @@ function renderPatientStep(step, opts={}){
 
   if(step === 'counseling'){
     const drug = patientData.drugKey;
+    updatePatientPickupStatus('OBRA offered', { icon:'🗣' });
     html = `
       <div class="${dirClass}">
         <div class="patient-card">
@@ -2399,6 +2666,10 @@ function renderPatientStep(step, opts={}){
     $('p-counsel-no').addEventListener('click', ()=>{
       state.followupList.push({ name: patientData.lastName || 'Patient', reason: `OBRA counseling offered — declined (${drug.label})`, startMin: state.shiftMinutes, overdue:false });
       renderStateBoard();
+      if(activeCheckin){
+        activeCheckin.obra = 'Declined';
+        activeCheckin.transcript.push('OBRA counseling offered — patient declined');
+      }
       renderPatientStep('confirmation');
     });
     return;
@@ -2420,12 +2691,34 @@ function renderPatientStep(step, opts={}){
       const q = $('p-counsel-text').value.trim();
       state.followupList.push({ name: patientData.lastName || 'Patient', reason: `Pharmacist counseling requested — ${drug.label}${q?`: ${q}`:''}`, startMin: state.shiftMinutes, overdue:false });
       state.followups++; renderStateBoard();
+      if(activeCheckin){
+        activeCheckin.obra = 'Accepted — spoke with pharmacist';
+        activeCheckin.transcript.push('OBRA counseling offered — accepted');
+        if(q) activeCheckin.transcript.push(`Pharmacist counseling question: ${q}`);
+        else activeCheckin.transcript.push('Pharmacist counseling session requested and logged');
+      }
       renderPatientStep('confirmation');
     });
     return;
   }
 
   if(step === 'confirmation'){
+    const completedDrug = patientData.drugKey; // captured now — patientData.drugKey is nulled by the reset timer below before completePatientPickupNotification's own shorter timer fires
+    updatePatientPickupStatus('Signature collected', { icon:'✍️' });
+    setTimeout(()=>completePatientPickupNotification(completedDrug), 600); // small delay so "Signature collected" is visibly its own step before "Complete", matching the intake flow's actual brief pause
+    if(activeCheckin){
+      activeCheckin.signature = 'Collected';
+      activeCheckin.status = 'complete';
+      activeCheckin.endTime = Date.now();
+      const durationSec = activeCheckin.startTime
+        ? Math.round((activeCheckin.endTime - activeCheckin.startTime) / 1000)
+        : (state.shiftMinutes - activeCheckin.startMin) * 60;
+      activeCheckin.intakeMinutes = durationSec / 60;
+      activeCheckin.transcript.push('Signature collected — pickup authorized');
+      activeCheckin.transcript.push(`${shortTime(state.shiftMinutes)} — Intake complete (${durationSec}s)`);
+      activeCheckin = null;
+      if($('view-patients') && $('view-patients').classList.contains('active')) renderPatientsView();
+    }
     html = `
       <div class="${dirClass}">
         <div class="patient-card">
@@ -2463,6 +2756,7 @@ function checkCrossModeAndProceed(drug){
   // a tech who flips to Interactions after this pickup isn't starting
   // from a blank checker — see seedInteractionCheck()'s doc comment.
   seedInteractionCheck(drug.label);
+  updatePatientPickupStatus('Identity verified', { icon:'✓', name: patientData.lastName, detail: drug.label });
 
   if(drug.key === 'oxy' && (state.csFlags.oxy === 'flag' || state.diversionDetected)){
     renderPatientStep('team-member-needed');
@@ -2470,6 +2764,7 @@ function checkCrossModeAndProceed(drug){
     state.followupList.push({ name: patientData.lastName || 'Patient', reason: 'Flagged controlled substance pickup — tech required at counter', startMin: state.shiftMinutes, overdue:true });
     state.followups++;
     renderStateBoard();
+    updatePatientPickupStatus('Escalated — tech needed', { icon:'⚠', escalated:true });
     return;
   }
   renderPatientStep('found');
@@ -2531,6 +2826,7 @@ function switchView(viewName){
   if(viewName === 'dispensing') renderDispensingView();
   else if(viewName === 'inventory') renderInventoryView();
   else if(viewName === 'followups') renderFollowupsView();
+  else if(viewName === 'patients') renderPatientsView();
   else if(viewName === 'reports') renderReportsView();
   else if(viewName === 'settings') renderSettingsView();
   // 'dashboard' needs no rebuild (it's the always-live original layout);
@@ -2804,6 +3100,67 @@ $('fu-new-add').addEventListener('click', () => {
   renderFollowupsView();
   renderStateBoard();
 });
+
+/* ============================================================
+   VIEW: PATIENTS
+   Shows every patient who checked in via Patient Mode this shift.
+   Pre-populated with mock data; real-time check-ins are added live.
+============================================================ */
+
+/**
+ * Renders the Patients view: summary stats at top, then a grid of
+ * every patient check-in with clickable rows to expand the transcript.
+ */
+function renderPatientsView(){
+  const viewEl = $('view-patients');
+  if(!viewEl) return;
+  const scrollEl = viewEl.querySelector('.view-scroll');
+  if(!scrollEl) return;
+
+  const total = state.patientCheckins.length;
+  const complete = state.patientCheckins.filter(p => p.status === 'complete');
+  const avgSec = complete.length
+    ? complete.reduce((s, p) => s + (p.intakeMinutes || 0) * 60, 0) / complete.length
+    : 0;
+  const avgDisplay = complete.length
+    ? (avgSec >= 60 ? (avgSec / 60).toFixed(1) + ' min' : Math.round(avgSec) + 's')
+    : '—';
+
+  scrollEl.innerHTML = `
+    <div class="patient-summary-bar">
+      <div class="patient-summary-card"><div class="num">${total}</div><div class="lbl">Total checked in today</div></div>
+      <div class="patient-summary-card"><div class="num">${avgDisplay}</div><div class="lbl">Average intake time</div></div>
+    </div>
+    <div class="patients-grid">
+      <div class="patients-grid-header">
+        <div>Name</div><div>Time</div><div>Prescription</div><div>Copay</div><div>OBRA</div><div>Signature</div><div>Status</div>
+      </div>
+      ${state.patientCheckins.map(p => `
+        <div class="patient-entry" data-id="${p.id}">
+          <div class="patient-entry-row">
+            <div style="font-weight:500;">${escapeHtml(p.name)}</div>
+            <div class="mono-cell" style="font-size:11px; color:var(--tx2);">${escapeHtml(p.timeDisplay || '—')}</div>
+            <div style="font-size:11.5px;">${escapeHtml(p.drug || '—')}</div>
+            <div class="mono-cell" style="font-size:12px;">${p.copay != null ? '$' + p.copay.toFixed(2) : '—'}${p.goodRxOffered ? '<br><span style="font-size:9px;color:var(--amber);">GoodRx: $'+p.goodRxPrice+'</span>' : ''}</div>
+            <div style="font-size:11.5px;">${escapeHtml(p.obra || '—')}</div>
+            <div style="font-size:11.5px;">${escapeHtml(p.signature || '—')}</div>
+            <div><span class="p-status-chip ${p.status}">${p.status === 'complete' ? 'Complete' : p.status === 'in-progress' ? 'In Progress' : 'Abandoned'}</span></div>
+          </div>
+          ${p.note ? `<div class="patient-note-row">⚠ ${escapeHtml(p.note)}</div>` : ''}
+          <div class="patient-entry-transcript">
+            ${p.transcript.map(t => `<div class="patient-transcript-line">${escapeHtml(t)}</div>`).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  scrollEl.querySelectorAll('.patient-entry-row').forEach(row => {
+    row.addEventListener('click', () => {
+      row.closest('.patient-entry').classList.toggle('expanded');
+    });
+  });
+}
 
 /* ============================================================
    DRUG INFO LOOKUP (OpenFDA) — shared by the Interactions view and
@@ -3240,6 +3597,7 @@ function renderReportsView(){
         <div style="font-size:13px; margin-bottom:10px;"><b>${escapeHtml(s.pharmacyName)}</b> ${s.pharmacistName ? `· Pharmacist on duty: ${escapeHtml(s.pharmacistName)}` : ''}${s.techName ? ` · Tech: ${escapeHtml(s.techName)}` : ''}</div>
         <div class="interaction-detail">Shift time: ${minutesToTimeStr(state.shiftMinutes)} (started ${s.shiftStartTime})</div>
         <div class="interaction-detail">Scripts filled: ${state.scripts} · Insurance rejects: ${state.rejects} · Agent flags raised: ${state.flags}</div>
+        <div class="interaction-detail">Patients checked in via Patient Mode: ${state.checkedIn}</div>
         <div class="interaction-detail">Diversion investigation: ${state.diversionDetected ? '<b style="color:var(--red);">OPEN — see Form 106 drafts below</b>' : 'None this shift'}</div>
         <div class="interaction-detail">Open follow-ups: ${state.followupList.filter(f => (f.status||'open') !== 'completed').length}</div>
       </div>
