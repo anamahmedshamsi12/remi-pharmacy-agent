@@ -1188,7 +1188,7 @@ function handleDiversion(ev){
 function generateHandoffReport(){
   runAgentTurn({
     icon:'📋', trigger:'Shift complete — handoff report',
-    userPrompt:`The shift just ended.\n\nCurrent shift state:\n${JSON.stringify(pharmacyStateSnapshot(),null,2)}\n\nWrite the handoff report for the incoming tech. Investigate anything still open (discrepancies, inventory, follow-ups) before concluding, and call out the single most important thing the next tech needs to know first.`
+    userPrompt:`The shift just ended.\n\nCurrent shift state:\n${JSON.stringify(pharmacyStateSnapshot(),null,2)}\n\nWrite the handoff report for the incoming tech. Call generate_shift_report for the full picture before concluding — investigate anything still open with trace_discrepancy/check_inventory too if the report surfaces something that needs it — and call out the single most important thing the next tech needs to know first.`
   });
 }
 
@@ -1248,6 +1248,16 @@ const TOOLS = [
     name: 'generate_form106',
     description: 'Drafts DEA Form 106 (Report of Theft or Loss of Controlled Substances) language from a drug\'s discrepancy history.',
     input_schema: { type:'object', properties:{ drug:{ type:'string', enum:Object.keys(drugNames) } }, required:['drug'] }
+  },
+  {
+    name: 'add_followup',
+    description: 'Logs a routine, non-urgent follow-up to the patient callback queue — a price check, a "script ready" reminder, a callback the tech needs to make. Distinct from flag_pharmacist, which is for escalations that need pharmacist review, not routine task tracking.',
+    input_schema: { type:'object', properties:{ patientName:{ type:'string', description:'Patient name, or a short label if unknown' }, reason:{ type:'string' } }, required:['patientName','reason'] }
+  },
+  {
+    name: 'generate_shift_report',
+    description: 'Compiles the full shift into a structured report: scripts filled, every controlled substance\'s reconciliation status, the complete discrepancy history, inventory status, and the open follow-up queue with elapsed wait times. Call this when asked to summarize, hand off, or report on the shift as a whole, rather than re-deriving the same totals from the state summary you already have.',
+    input_schema: { type:'object', properties:{}, required:[] }
   }
 ];
 
@@ -1355,6 +1365,60 @@ const TOOL_IMPL = {
       total_unaccounted_units: totalGap,
       form_106_recommended: history.length >= 2,
       draft_narrative: `Theft/Loss of Controlled Substances — ${drugNames[drug]||drug}. ${history.length} unexplained count discrepancies this shift totaling ${totalGap} units unaccounted for. Pattern consistent with diversion. File DEA Form 106 with the DEA Diversion Control Division and notify the pharmacist-in-charge and DEA registrant immediately.`
+    };
+  },
+  /**
+   * Logs a routine follow-up (price check, "script ready" reminder,
+   * a callback to make) to the END of the queue via `push`, in
+   * contrast to flag_pharmacist's `unshift` — routine items wait
+   * their turn, escalations jump to the front. This is the tool
+   * boundary that keeps "needs pharmacist review" and "needs to
+   * happen eventually" from being conflated in one queue with one
+   * severity scale.
+   * @param {{patientName:string, reason:string}} input
+   * @returns {object} Confirmation of the queued item and when it was queued.
+   */
+  add_followup({patientName, reason}){
+    state.followupList.push({ name: patientName, reason, startMin: state.shiftMinutes, overdue: false, status: 'open' });
+    state.followups++;
+    renderStateBoard();
+    return { status: 'logged', queued_at: shortTime(state.shiftMinutes) };
+  },
+  /**
+   * Compiles the entire shift into one structured object: every
+   * controlled substance's reconciliation status and discrepancy
+   * history, every standard-inventory drug's stock, and the full
+   * follow-up queue with elapsed wait times computed. This is the
+   * whole-shift equivalent of trace_discrepancy/check_inventory —
+   * giving Claude one tool call to get the full picture instead of
+   * needing to call trace_discrepancy/check_inventory once per drug
+   * when asked to summarize or hand off the shift.
+   * @returns {object} Full shift report data.
+   */
+  generate_shift_report(){
+    return {
+      shift_time: minutesToTimeStr(state.shiftMinutes),
+      scripts_filled: state.scripts,
+      insurance_rejects: state.rejects,
+      agent_flags_raised: state.flags,
+      diversion_detected: state.diversionDetected,
+      controlled_substances: Object.keys(state.cs).map(k => ({
+        drug: drugNames[k],
+        on_hand: state.cs[k],
+        expected: expectedCount(k),
+        status: state.csFlags[k],
+        discrepancy_history: k === 'oxy' ? state.oxyDiscrepancies.map(d => ({ gap: d.gap, count_cycle: d.n, at: shortTime(d.at) })) : []
+      })),
+      inventory: Object.keys(state.inv).map(k => ({
+        drug: drugNames[k],
+        on_hand: state.inv[k],
+        max: invMax[k] || null,
+        fda_shortage_active: k === 'ozm'
+      })),
+      open_followups: state.followupList.map(f => ({
+        name: f.name, reason: f.reason, status: f.status || 'open', overdue: f.overdue,
+        elapsed_minutes: f.startMin < 0 ? Math.abs(f.startMin) + state.shiftMinutes : Math.max(0, state.shiftMinutes - f.startMin)
+      }))
     };
   }
 };

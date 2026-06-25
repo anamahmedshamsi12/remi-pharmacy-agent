@@ -76,6 +76,8 @@ Every request, tool selection, tool result, and conclusion is also logged to the
 | `decode_reject` | `{ code, drug }` | `REJECT_CODES` lookup table | — | none (pure read) |
 | `flag_pharmacist` | `{ reason, severity }` | — | `state.followupList`, `state.followups` | calls `renderStateBoard()` — the only tool with an immediately visible UI side effect |
 | `generate_form106` | `{ drug }` | `state.oxyDiscrepancies` | — | none (pure read); returns a recommendation, not a decision |
+| `add_followup` | `{ patientName, reason }` | — | `state.followupList` (via `push`), `state.followups` | routine queue item — calls `renderStateBoard()`; distinct from `flag_pharmacist`'s `unshift` escalation path |
+| `generate_shift_report` | `{}` | `state.cs`, `state.inv`, `state.oxyDiscrepancies`, `state.followupList` | — | none (pure read); the whole-shift equivalent of calling `trace_discrepancy`/`check_inventory` per drug |
 
 The `drug` parameter on every tool is constrained with a JSON Schema `enum` of `Object.keys(drugNames)` rather than a free string, so Claude can't pass a value `TOOL_IMPL` wouldn't recognize.
 
